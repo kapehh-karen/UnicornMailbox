@@ -1,0 +1,9 @@
+name: UnicornMailbox
+main: me.kapehh.UnicornMailbox.Main
+author: kapehh
+version: 1.0.0
+commands:
+    mailbox:
+        usage: /<command>
+        description: UnicornMailbox
+        aliases: mail

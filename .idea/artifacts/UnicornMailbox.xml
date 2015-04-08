@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="UnicornMailbox">
+    <output-path>$PROJECT_DIR$/out/artifacts/UnicornMailbox</output-path>
+    <root id="archive" name="UnicornMailbox.jar">
+      <element id="module-output" name="UnicornMailbox" />
+      <element id="file-copy" path="$PROJECT_DIR$/plugin.yml" />
+    </root>
+  </artifact>
+</component>
