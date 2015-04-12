@@ -1,8 +1,15 @@
 package me.kapehh.UnicornMailbox;
 
+import me.kapehh.UnicornMailbox.serialize.ItemStackSerializer;
+import me.kapehh.main.pluginmanager.config.EventPluginConfig;
+import me.kapehh.main.pluginmanager.config.EventType;
+import me.kapehh.main.pluginmanager.config.PluginConfig;
+import me.kapehh.main.pluginmanager.db.PluginDatabase;
+import me.kapehh.main.pluginmanager.db.PluginDatabaseInfo;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -13,49 +20,79 @@ import java.beans.XMLEncoder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.SQLException;
 
 /**
  * Created by Karen on 08.04.2015.
  */
 public class Main extends JavaPlugin {
-    byte[] tmp = null;
+    PluginConfig pluginConfig;
+    PluginDatabaseInfo dbInfo = new PluginDatabaseInfo();
+    PluginDatabase dbHelper;
+    MailCommandExecutor mailCommandExecutor;
+
+    @EventPluginConfig(EventType.LOAD)
+    public void onLoadConfig(FileConfiguration cfg) {
+        mailCommandExecutor.setDbHelper(null);
+
+        if (dbHelper != null) {
+            try {
+                dbHelper.disconnect();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            dbHelper = null;
+        }
+
+        dbInfo.setIp(cfg.getString("connect.ip", ""));
+        dbInfo.setDb(cfg.getString("connect.db", ""));
+        dbInfo.setLogin(cfg.getString("connect.login", ""));
+        dbInfo.setPassword(cfg.getString("connect.password", ""));
+        dbInfo.setTable(cfg.getString("connect.table", ""));
+
+        // коннектимся
+        try {
+            // создаем экземпляр класса для соединения с БД
+            dbHelper = new PluginDatabase(
+                    dbInfo.getIp(),
+                    dbInfo.getDb(),
+                    dbInfo.getLogin(),
+                    dbInfo.getPassword()
+            );
+
+            dbHelper.connect();
+            mailCommandExecutor.setDbHelper(dbHelper);
+            getLogger().info("Success connect to MySQL!");
+        } catch (SQLException e) {
+            dbHelper = null;
+            e.printStackTrace();
+        }
+    }
 
     @Override
     public void onDisable() {
-        super.onDisable();
+        if (pluginConfig != null) {
+            pluginConfig.saveData();
+        }
+        if (dbHelper != null) {
+            try {
+                dbHelper.disconnect();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            dbHelper = null;
+        }
     }
 
     @Override
     public void onEnable() {
-        getCommand("mailbox").setExecutor(new CommandExecutor() {
-            @Override
-            public boolean onCommand(CommandSender sender, Command command, String s, String[] args) {
-                Player player = (Player) sender;
-                ItemStack itemStack;
-                try {
-                    if (tmp == null) {
-                        itemStack = player.getItemInHand();
-                        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                        BukkitObjectOutputStream bukkitObjectOutputStream = new BukkitObjectOutputStream(byteArrayOutputStream);
-                        bukkitObjectOutputStream.writeObject(itemStack);
-                        bukkitObjectOutputStream.flush();
-                        bukkitObjectOutputStream.close();
-                        tmp = byteArrayOutputStream.toByteArray();
-                        player.sendMessage("Geted: " + itemStack);
-                    } else {
-                        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(tmp);
-                        BukkitObjectInputStream bukkitObjectInputStream = new BukkitObjectInputStream(byteArrayInputStream);
-                        itemStack = (ItemStack) bukkitObjectInputStream.readObject();
-                        player.setItemInHand(itemStack);
-                        player.sendMessage("Seted: " + itemStack);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
-                return true;
-            }
-        });
+        mailCommandExecutor = new MailCommandExecutor();
+
+        pluginConfig = new PluginConfig(this);
+        pluginConfig.addEventClasses(this);
+        pluginConfig.setup();
+        pluginConfig.loadData();
+
+        getCommand("mailbox").setExecutor(mailCommandExecutor);
     }
 }

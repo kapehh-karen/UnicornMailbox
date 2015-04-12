@@ -7,6 +7,7 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * Created by Karen on 08.04.2015.
@@ -27,7 +28,9 @@ public class ItemStackSerializer {
     public static ItemStack fromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
         BukkitObjectInputStream bukkitObjectInputStream = new BukkitObjectInputStream(byteArrayInputStream);
-        return (ItemStack) bukkitObjectInputStream.readObject();
+        ItemStack ret = (ItemStack) bukkitObjectInputStream.readObject();
+        bukkitObjectInputStream.close();
+        return ret;
     }
 
 }

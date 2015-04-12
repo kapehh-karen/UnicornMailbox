@@ -1,0 +1,6 @@
+connect:
+    ip: 127.0.0.1
+    db: localhost
+    login: root
+    password: password
+    table: mail
