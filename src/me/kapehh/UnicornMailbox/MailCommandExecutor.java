@@ -1,5 +1,6 @@
 package me.kapehh.UnicornMailbox;
 
+import me.kapehh.UnicornMailbox.mailbox.MailPack;
 import me.kapehh.UnicornMailbox.mailbox.MailSender;
 import me.kapehh.UnicornMailbox.serialize.ItemStackSerializer;
 import me.kapehh.main.pluginmanager.db.PluginDatabase;
@@ -11,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Created by Karen on 12.04.2015.
@@ -29,24 +31,14 @@ public class MailCommandExecutor implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String s, String[] args) {
         Player player = (Player) sender;
-        if (args.length < 2) {
-            return false;
-        }
         try {
-            if (args[0].equalsIgnoreCase("send")) {
-                /*Player to = PlayerUtil.getOnlinePlayer(args[1]);
-                if (to == null) {
-                    player.sendMessage("Sorri, player ne nayden!");
-                    return true;
-                }*/
+            if (args.length >= 2 && args[0].equalsIgnoreCase("send")) {
                 MailSender.sendMail(dbHelper, player.getItemInHand(), player.getName(), args[1]);
                 player.setItemInHand(null);
                 player.sendMessage("Otpravleno!");
-            } else if (args[0].equalsIgnoreCase("receiv")) {
-                int id = Integer.parseInt(args[1]);
-                ItemStack itemStack = MailSender.receiveMail(dbHelper, id);
-                player.setItemInHand(itemStack);
-                player.sendMessage("Polucheno!!");
+            } else if (args.length >= 1 && args[0].equalsIgnoreCase("receiv")) {
+                MailPack mailPack = MailSender.receiveMails(dbHelper, player.getName(), 2);
+                player.sendMessage(mailPack.toString());
             } else {
                 player.sendMessage("Takoy argument not found...");
             }
