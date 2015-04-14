@@ -4,6 +4,7 @@ import me.kapehh.UnicornMailbox.serialize.ItemStackSerializer;
 import me.kapehh.main.pluginmanager.db.PluginDatabase;
 import me.kapehh.main.pluginmanager.db.PluginDatabaseResult;
 import org.apache.commons.lang.StringUtils;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.StringUtil;
@@ -21,6 +22,10 @@ import java.util.List;
  * Created by Karen on 12.04.2015.
  */
 public class MailSender {
+
+    public static boolean isCorrectItem(ItemStack itemStack) {
+        return !(itemStack == null || itemStack.getType().equals(Material.AIR));
+    }
 
     public static void sendMail(PluginDatabase dbHelper, ItemStack itemStack, String from, String to) throws IOException, SQLException {
         byte[] bItem = ItemStackSerializer.toBytes(itemStack);

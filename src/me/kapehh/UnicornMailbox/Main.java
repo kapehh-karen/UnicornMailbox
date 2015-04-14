@@ -6,6 +6,7 @@ import me.kapehh.main.pluginmanager.config.EventType;
 import me.kapehh.main.pluginmanager.config.PluginConfig;
 import me.kapehh.main.pluginmanager.db.PluginDatabase;
 import me.kapehh.main.pluginmanager.db.PluginDatabaseInfo;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -54,10 +55,10 @@ public class Main extends JavaPlugin {
         try {
             // создаем экземпляр класса для соединения с БД
             dbHelper = new PluginDatabase(
-                    dbInfo.getIp(),
-                    dbInfo.getDb(),
-                    dbInfo.getLogin(),
-                    dbInfo.getPassword()
+                dbInfo.getIp(),
+                dbInfo.getDb(),
+                dbInfo.getLogin(),
+                dbInfo.getPassword()
             );
 
             dbHelper.connect();
@@ -94,5 +95,9 @@ public class Main extends JavaPlugin {
         pluginConfig.loadData();
 
         getCommand("mailbox").setExecutor(mailCommandExecutor);
+    }
+
+    public static String getErrorMessage(String message) {
+        return ChatColor.DARK_RED + "[Mailbox] " + message;
     }
 }
