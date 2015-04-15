@@ -4,6 +4,6 @@ author: kapehh
 version: 1.0.0
 commands:
     mailbox:
-        usage: /<command>
+        usage: /<command> (send [player] | receiv)
         description: UnicornMailbox
         aliases: mail

@@ -2,6 +2,7 @@ package me.kapehh.UnicornMailbox.mailbox;
 
 import me.kapehh.UnicornMailbox.serialize.ItemStackSerializer;
 import me.kapehh.main.pluginmanager.db.PluginDatabase;
+import me.kapehh.main.pluginmanager.db.PluginDatabaseInfo;
 import me.kapehh.main.pluginmanager.db.PluginDatabaseResult;
 import org.apache.commons.lang.StringUtils;
 import org.bukkit.Material;
@@ -27,38 +28,35 @@ public class MailSender {
         return !(itemStack == null || itemStack.getType().equals(Material.AIR));
     }
 
-    public static void sendMail(PluginDatabase dbHelper, ItemStack itemStack, String from, String to) throws IOException, SQLException {
+    public static void sendMail(PluginDatabase dbHelper, PluginDatabaseInfo dbInfo, ItemStack itemStack, String from, String to) throws IOException, SQLException {
+        if (dbHelper == null || dbInfo == null) return;
         byte[] bItem = ItemStackSerializer.toBytes(itemStack);
         dbHelper.prepareQueryUpdate(
-            "INSERT INTO `mail`(`raw`, `info`, `sended_date`, `received_date`, `from`, `to`, `is_received`) VALUES (?, ?, NOW(), '0000-00-00 00:00:00', ?, ?, 0)",
+            "INSERT INTO `" + dbInfo.getTable() + "`(`raw`, `info`, `sended_date`, `received_date`, `from`, `to`, `is_received`) VALUES (?, ?, NOW(), '0000-00-00 00:00:00', ?, ?, 0)",
             bItem, itemStack.toString(),
-            from, to
+            from.toLowerCase(), to.toLowerCase()
         );
     }
 
-    /*public static ItemStack receiveMail(PluginDatabase dbHelper, int id) throws SQLException, IOException, ClassNotFoundException {
-        ItemStack itemStack = null;
-        PluginDatabaseResult pResult = dbHelper.prepareQueryStart("SELECT * FROM `mail` WHERE `id` = ?", id);
+    public static int countMails(PluginDatabase dbHelper, PluginDatabaseInfo dbInfo, String playerName) throws SQLException {
+        if (dbHelper == null || dbInfo == null) return -1;
+        PluginDatabaseResult pResult = dbHelper.prepareQueryStart("SELECT COUNT(*) AS count_all_mails FROM `" + dbInfo.getTable() + "` WHERE (`to` = ?) AND (`is_received` = 0)", playerName.toLowerCase());
         ResultSet result = pResult.getResultSet();
-        boolean isReceived = false;
+        int count = 0;
         if (result.next()) {
-            byte[] bItem = result.getBytes("raw");
-            itemStack = ItemStackSerializer.fromBytes(bItem);
-            isReceived = true;
-        }
-        if (isReceived) {
-            dbHelper.prepareQueryUpdate("UPDATE `mail` SET `received_date` = NOW(), `is_received` = 1 WHERE `id` = ?", id);
+            count = result.getInt("count_all_mails");
         }
         dbHelper.queryEnd(pResult);
-        return itemStack;
-    }*/
+        return count;
+    }
 
-    public static MailPack receiveMails(PluginDatabase dbHelper, String playerName, int limit) throws SQLException, IOException, ClassNotFoundException {
+    public static MailPack receiveMails(PluginDatabase dbHelper, PluginDatabaseInfo dbInfo, String playerName, int limit) throws SQLException, IOException, ClassNotFoundException {
+        if (dbHelper == null || dbInfo == null) return null;
         MailPack mailPack = new MailPack();
         if (limit == 0) return mailPack;
         List<ItemStack> ret = new ArrayList<ItemStack>();
         List<Integer> ids = new ArrayList<Integer>();
-        PluginDatabaseResult pResult = dbHelper.prepareQueryStart("SELECT `id`, `raw` FROM `mail` WHERE (`to` = ?) AND (`is_received` = 0)", playerName);
+        PluginDatabaseResult pResult = dbHelper.prepareQueryStart("SELECT `id`, `raw` FROM `" + dbInfo.getTable() + "` WHERE (`to` = ?) AND (`is_received` = 0)", playerName.toLowerCase());
         ResultSet result = pResult.getResultSet();
         byte[] bItem;
         ItemStack itemStack;
@@ -80,7 +78,7 @@ public class MailSender {
         mailPack.setSize_all(count);
         if (ids.size() > 0) {
             dbHelper.prepareQueryUpdate(
-                "UPDATE `mail` SET `received_date` = NOW(), `is_received` = 1 WHERE `id` IN (" + StringUtils.join(ids, ", ") + ")"
+                "UPDATE `" + dbInfo.getTable() + "` SET `received_date` = NOW(), `is_received` = 1 WHERE `id` IN (" + StringUtils.join(ids, ", ") + ")"
             );
         }
         return mailPack;

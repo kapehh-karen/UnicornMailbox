@@ -1,26 +1,14 @@
 package me.kapehh.UnicornMailbox;
 
-import me.kapehh.UnicornMailbox.serialize.ItemStackSerializer;
 import me.kapehh.main.pluginmanager.config.EventPluginConfig;
 import me.kapehh.main.pluginmanager.config.EventType;
 import me.kapehh.main.pluginmanager.config.PluginConfig;
 import me.kapehh.main.pluginmanager.db.PluginDatabase;
 import me.kapehh.main.pluginmanager.db.PluginDatabaseInfo;
 import org.bukkit.ChatColor;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.io.BukkitObjectInputStream;
-import org.bukkit.util.io.BukkitObjectOutputStream;
 
-import java.beans.XMLEncoder;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.sql.SQLException;
 
 /**
@@ -30,11 +18,12 @@ public class Main extends JavaPlugin {
     PluginConfig pluginConfig;
     PluginDatabaseInfo dbInfo = new PluginDatabaseInfo();
     PluginDatabase dbHelper;
-    MailCommandExecutor mailCommandExecutor;
+    MailCore mailCore;
 
     @EventPluginConfig(EventType.LOAD)
     public void onLoadConfig(FileConfiguration cfg) {
-        mailCommandExecutor.setDbHelper(null);
+        mailCore.setDbHelper(null);
+        mailCore.setDbInfo(null);
 
         if (dbHelper != null) {
             try {
@@ -62,7 +51,8 @@ public class Main extends JavaPlugin {
             );
 
             dbHelper.connect();
-            mailCommandExecutor.setDbHelper(dbHelper);
+            mailCore.setDbHelper(dbHelper);
+            mailCore.setDbInfo(dbInfo);
             getLogger().info("Success connect to MySQL!");
         } catch (SQLException e) {
             dbHelper = null;
@@ -87,17 +77,22 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        mailCommandExecutor = new MailCommandExecutor();
+        mailCore = new MailCore();
 
         pluginConfig = new PluginConfig(this);
         pluginConfig.addEventClasses(this);
         pluginConfig.setup();
         pluginConfig.loadData();
 
-        getCommand("mailbox").setExecutor(mailCommandExecutor);
+        getCommand("mailbox").setExecutor(mailCore);
+        getServer().getPluginManager().registerEvents(mailCore, this);
     }
 
     public static String getErrorMessage(String message) {
-        return ChatColor.DARK_RED + "[Mailbox] " + message;
+        return ChatColor.BOLD + "[Mailbox] " + ChatColor.RESET + ChatColor.RED + message;
+    }
+
+    public static String getNormalMessage(String message) {
+        return ChatColor.BOLD + "[Mailbox] " + ChatColor.RESET + ChatColor.YELLOW + message;
     }
 }
