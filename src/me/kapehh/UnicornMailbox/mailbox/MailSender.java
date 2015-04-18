@@ -38,6 +38,26 @@ public class MailSender {
         );
     }
 
+    public static void sendMails(PluginDatabase dbHelper, PluginDatabaseInfo dbInfo, ItemStack[] itemStacks, String from, String to) throws SQLException, IOException {
+        if (dbHelper == null || dbInfo == null) return;
+        Connection connection = dbHelper.getConnection();
+        boolean autoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        PreparedStatement preparedStatement = connection.prepareStatement(
+                "INSERT INTO `" + dbInfo.getTable() + "`(`raw`, `info`, `sended_date`, `received_date`, `from`, `to`, `is_received`) VALUES (?, ?, NOW(), '0000-00-00 00:00:00', ?, ?, 0)"
+        );
+        for (ItemStack itemStack : itemStacks) {
+            if (itemStack == null || itemStack.getType().equals(Material.AIR)) continue;
+            preparedStatement.setBytes(1, ItemStackSerializer.toBytes(itemStack));
+            preparedStatement.setString(2, itemStack.toString());
+            preparedStatement.setString(3, from.toLowerCase());
+            preparedStatement.setString(4, to.toLowerCase());
+            preparedStatement.executeUpdate();
+        }
+        connection.commit();
+        connection.setAutoCommit(autoCommit);
+    }
+
     public static int countMails(PluginDatabase dbHelper, PluginDatabaseInfo dbInfo, String playerName) throws SQLException {
         if (dbHelper == null || dbInfo == null) return -1;
         PluginDatabaseResult pResult = dbHelper.prepareQueryStart("SELECT COUNT(*) AS count_all_mails FROM `" + dbInfo.getTable() + "` WHERE (`to` = ?) AND (`is_received` = 0)", playerName.toLowerCase());

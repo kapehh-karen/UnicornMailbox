@@ -1,5 +1,6 @@
 package me.kapehh.UnicornMailbox;
 
+import me.kapehh.main.pluginmanager.checker.PluginChecker;
 import me.kapehh.main.pluginmanager.config.EventPluginConfig;
 import me.kapehh.main.pluginmanager.config.EventType;
 import me.kapehh.main.pluginmanager.config.PluginConfig;
@@ -78,6 +79,7 @@ public class Main extends JavaPlugin {
     @Override
     public void onEnable() {
         mailCore = new MailCore();
+        mailCore.setRandomChestExists(new PluginChecker(this).check("RandomChest", false));
 
         pluginConfig = new PluginConfig(this);
         pluginConfig.addEventClasses(this);
