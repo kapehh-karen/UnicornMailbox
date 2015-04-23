@@ -6,6 +6,7 @@ import me.kapehh.main.pluginmanager.config.EventType;
 import me.kapehh.main.pluginmanager.config.PluginConfig;
 import me.kapehh.main.pluginmanager.db.PluginDatabase;
 import me.kapehh.main.pluginmanager.db.PluginDatabaseInfo;
+import me.kapehh.main.pluginmanager.thread.PluginAsyncTimer;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -78,7 +79,7 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        mailCore = new MailCore();
+        mailCore = new MailCore(this);
         mailCore.setRandomChestExists(new PluginChecker(this).check("RandomChest", false));
 
         pluginConfig = new PluginConfig(this);
