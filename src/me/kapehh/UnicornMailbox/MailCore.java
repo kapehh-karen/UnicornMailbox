@@ -32,6 +32,11 @@ import java.util.List;
  * Created by Karen on 12.04.2015.
  */
 public class MailCore implements Listener, CommandExecutor, IPluginAsyncTask {
+    private static final int ACTION_SEND = 1;
+    private static final int ACTION_RECEIV = 2;
+    private static final int ACTION_GIVE = 3;
+    private static final int ACTION_CHECK_MAILS = 4;
+
     PluginAsyncTimer pluginAsyncTimer;
     PluginDatabase dbHelper;
     PluginDatabaseInfo dbInfo;
@@ -72,16 +77,7 @@ public class MailCore implements Listener, CommandExecutor, IPluginAsyncTask {
             return;
         }
 
-        Player player = playerJoinEvent.getPlayer();
-        int countMails;
-        try {
-            countMails = MailSender.countMails(dbHelper, dbInfo, player.getName());
-            if (countMails > 0) {
-                player.sendMessage(Main.getNormalMessage("Вам пришла посылка, забрать /mail receiv"));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        pluginAsyncTimer.runTask(this, ACTION_CHECK_MAILS, playerJoinEvent.getPlayer());
     }
 
     @Override
@@ -91,21 +87,41 @@ public class MailCore implements Listener, CommandExecutor, IPluginAsyncTask {
             return true;
         }
 
-        try {
-            // TODO: Remove
-            if (sender instanceof Player) {
-                pluginAsyncTimer.runTask(this, Integer.parseInt(args[0]), sender, ((Player) sender).getItemInHand());
-                return true;
-            }
+        if ((args.length >= 2) && args[0].equalsIgnoreCase("send") && (sender instanceof Player)) {
+            pluginAsyncTimer.runTask(this, ACTION_SEND, sender, args[1]);
+        } else if ((args.length >= 1) && args[0].equalsIgnoreCase("receiv") && (sender instanceof Player)) {
+            pluginAsyncTimer.runTask(this, ACTION_RECEIV, sender);
+        } else if (args.length >= 3 && args[0].equalsIgnoreCase("give") && sender.isOp()) {
+            pluginAsyncTimer.runTask(this, ACTION_GIVE, sender, args[1], args[2]);
+        } else {
+            sender.sendMessage(Main.getErrorMessage("Некорректные аргументы"));
+            return false;
+        }
+        return true;
+    }
 
-            if ((args.length >= 2) && args[0].equalsIgnoreCase("send") && (sender instanceof Player)) {
+    @Override
+    public Object doRun(int id, Object[] args) throws Throwable {
+        Player player;
 
-                Player player = (Player) sender;
+        switch (id) {
+            case ACTION_CHECK_MAILS:
+
+                player = (Player) args[0];
+                int countMails = MailSender.countMails(dbHelper, dbInfo, player.getName());
+                if (countMails > 0) {
+                    player.sendMessage(Main.getNormalMessage("Вам пришла посылка, забрать /mail receiv"));
+                }
+
+                break;
+            case ACTION_SEND:
+
+                player = (Player) args[0];
                 ItemStack itemStack = player.getItemInHand();
                 if (MailSender.isCorrectItem(itemStack)) {
-                    String namePlayerReceiver = args[1];
-                    MailSender.sendMail(dbHelper, dbInfo, itemStack, player.getName(), namePlayerReceiver);
+                    String namePlayerReceiver = (String) args[1];
                     player.setItemInHand(null);
+                    MailSender.sendMail(dbHelper, dbInfo, itemStack, player.getName(), namePlayerReceiver);
                     player.sendMessage(Main.getNormalMessage("Посылка отправлена!"));
                     Player playerReceiver = PlayerUtil.getOnlinePlayer(namePlayerReceiver, true);
                     if (playerReceiver != null) {
@@ -115,9 +131,10 @@ public class MailCore implements Listener, CommandExecutor, IPluginAsyncTask {
                     player.sendMessage(Main.getErrorMessage("Возьмите в руку предмет для отправки"));
                 }
 
-            } else if ((args.length >= 1) && args[0].equalsIgnoreCase("receiv") && (sender instanceof Player)) {
+                break;
+            case ACTION_RECEIV:
 
-                Player player = (Player) sender;
+                player = (Player) args[0];
                 int canItems = PlayerInv.getPlayerEmptySize(player);
                 if (canItems > 0) {
                     MailPack mailPack = MailSender.receiveMails(dbHelper, dbInfo, player.getName(), canItems);
@@ -131,10 +148,12 @@ public class MailCore implements Listener, CommandExecutor, IPluginAsyncTask {
                     player.sendMessage(Main.getErrorMessage("В инвентаре нет места"));
                 }
 
-            } else if (args.length >= 3 && args[0].equalsIgnoreCase("give") && sender.isOp()) {
+                break;
+            case ACTION_GIVE:
 
-                String namePlayerReceiver = args[1];
-                String chestName = args[2];
+                CommandSender sender = (CommandSender) args[0];
+                String namePlayerReceiver = (String) args[1];
+                String chestName = (String) args[2];
                 if (randomChestExists) {
                     ChestManager chestManager = me.kapehh.main.RandomChest.Main.instance.chestManager;
                     ChestData chestData = chestManager.getChestDataFromName(chestName);
@@ -153,49 +172,18 @@ public class MailCore implements Listener, CommandExecutor, IPluginAsyncTask {
                     sender.sendMessage(Main.getErrorMessage("Плагин RandomChest не был обнаружен при загрузке"));
                 }
 
-            } else {
-                sender.sendMessage(Main.getErrorMessage("Некорректные аргументы"));
-                return false;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+                break;
         }
-        return true;
-    }
-
-    @Override
-    public Object doRun(int i, Object[] objects) throws Throwable {
-        System.out.println("Test access " + objects[0]);
-        System.out.println("Test access " + objects[1]);
-
-        System.out.println("try cast");
-        ItemStack itemStack = (ItemStack) objects[1];
-
-        System.out.println("try get field: " + itemStack.getType());
-
-        System.out.println("try serialize");
-        byte[] bItem = ItemStackSerializer.toBytes(itemStack);
-
-        System.out.println("try cast");
-        Player player = (Player) objects[0];
-
-        System.out.printf("try get field: " + player.getName());
-
-        System.out.printf("try message");
-        player.sendMessage(ChatColor.RED + "SWAAAG");
-
-        System.out.println("success");
         return null;
     }
 
     @Override
-    public void onSuccess(int id, Object o) {
-        System.out.println("VSE OK: " + id);
+    public void onSuccess(int id, Object res) {
+
     }
 
     @Override
-    public void onFailure(int id, Throwable throwable) {
-        System.out.println("Error in: " + id);
-        throwable.printStackTrace();
+    public void onFailure(int id, Throwable err) {
+        err.printStackTrace();
     }
 }
