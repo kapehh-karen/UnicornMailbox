@@ -36,6 +36,7 @@ public class MailCore implements Listener, CommandExecutor, IPluginAsyncTask {
     private static final int ACTION_RECEIV = 2;
     private static final int ACTION_GIVE = 3;
     private static final int ACTION_CHECK_MAILS = 4;
+    private static final int ACTION_CUSTOM_SEND = 5;
 
     PluginAsyncTimer pluginAsyncTimer;
     PluginDatabase dbHelper;
@@ -69,6 +70,10 @@ public class MailCore implements Listener, CommandExecutor, IPluginAsyncTask {
 
     public void setDbInfo(PluginDatabaseInfo dbInfo) {
         this.dbInfo = dbInfo;
+    }
+
+    public void sendItemsToPlayer(String to, String from, ItemStack[] content) {
+        pluginAsyncTimer.runTask(this, ACTION_CUSTOM_SEND, to, from, content);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -170,6 +175,19 @@ public class MailCore implements Listener, CommandExecutor, IPluginAsyncTask {
                     }
                 } else {
                     sender.sendMessage(Main.getErrorMessage("Плагин RandomChest не был обнаружен при загрузке"));
+                }
+
+                break;
+
+            case ACTION_CUSTOM_SEND:
+
+                String to = (String) args[0];
+                String from = (String) args[1];
+                ItemStack[] content = (ItemStack[]) args[2];
+                MailSender.sendMails(dbHelper, dbInfo, content, from, to);
+                Player playerReceiver = PlayerUtil.getOnlinePlayer(to, true);
+                if (playerReceiver != null) {
+                    playerReceiver.sendMessage(Main.getNormalMessage("Вам пришла посылка, забрать /mail receiv"));
                 }
 
                 break;

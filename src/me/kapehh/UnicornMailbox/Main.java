@@ -17,6 +17,8 @@ import java.sql.SQLException;
  * Created by Karen on 08.04.2015.
  */
 public class Main extends JavaPlugin {
+    public static Main instance = null;
+
     PluginConfig pluginConfig;
     PluginDatabaseInfo dbInfo = new PluginDatabaseInfo();
     PluginDatabase dbHelper;
@@ -67,6 +69,7 @@ public class Main extends JavaPlugin {
         if (pluginConfig != null) {
             pluginConfig.saveData();
         }
+
         if (dbHelper != null) {
             try {
                 dbHelper.disconnect();
@@ -75,10 +78,14 @@ public class Main extends JavaPlugin {
             }
             dbHelper = null;
         }
+
+        instance = null;
     }
 
     @Override
     public void onEnable() {
+        instance = this;
+
         mailCore = new MailCore(this);
         mailCore.setRandomChestExists(new PluginChecker(this).check("RandomChest", false));
 
@@ -97,5 +104,9 @@ public class Main extends JavaPlugin {
 
     public static String getNormalMessage(String message) {
         return ChatColor.BOLD + "[Mailbox] " + ChatColor.RESET + ChatColor.YELLOW + message;
+    }
+
+    public MailCore getMailCore() {
+        return mailCore;
     }
 }
